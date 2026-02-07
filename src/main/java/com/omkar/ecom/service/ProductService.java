@@ -40,4 +40,16 @@ public class ProductService {
         product.setImageData(imageFile.getBytes());
         return repo.save(product);
     }
+
+    public Product updateProduct(Integer prodId, Product prod, MultipartFile imageFile) throws IOException {
+        Optional<Product> product = repo.findById(prodId);
+        if (product.isPresent()) {
+            prod.setImageData(imageFile.getBytes());
+            prod.setImageName(imageFile.getOriginalFilename());
+            prod.setImageType(imageFile.getContentType());
+            return repo.save(prod);
+        } else {
+            return null;
+        }
+    }
 }

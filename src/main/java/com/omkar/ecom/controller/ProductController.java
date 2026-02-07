@@ -1,5 +1,6 @@
 package com.omkar.ecom.controller;
 
+import java.io.IOException;
 import java.util.List;
 
 import com.omkar.ecom.model.Product;
@@ -60,13 +61,29 @@ public class ProductController {
         service.saveProduct(prod);
     }
 
-    @PutMapping("/products")
-    public void updateProduct(@RequestBody Product prod) {
-        service.saveProduct(prod);
+    @PutMapping(value = "/product/{prodId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<String> updateProduct(@PathVariable Integer prodId, @RequestPart("product") Product product, @RequestPart(value = "imageFile",required = false) MultipartFile imageFile) {
+        Product product1;
+        try {
+            product1 = service.updateProduct(prodId, product, imageFile);
+        } catch (IOException e) {
+            return new ResponseEntity<>("Failed to update", HttpStatus.BAD_REQUEST);
+        }
+        if (product1 != null) {
+            return new ResponseEntity<>("Updated", HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>("Failed to update", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
-    @DeleteMapping("/products/{prodId}")
-    public void deleteProduct(@PathVariable Integer prodId) {
-        service.deleteProduct(prodId);
+    @DeleteMapping("/product/{prodId}")
+    public ResponseEntity<String> deleteProduct(@PathVariable Integer prodId) {
+        Product product = service.findProductById(prodId);
+        if (product != null) {
+            service.deleteProduct(prodId);
+            return new ResponseEntity<>("Deleted", HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>("Product not found", HttpStatus.NOT_FOUND);
+        }
     }
 }
