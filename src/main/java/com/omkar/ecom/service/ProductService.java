@@ -52,4 +52,8 @@ public class ProductService {
             return null;
         }
     }
+
+    public List<Product> searchProducts(String keyword) {
+        return repo.searchProducts(keyword);
+    }
 }
