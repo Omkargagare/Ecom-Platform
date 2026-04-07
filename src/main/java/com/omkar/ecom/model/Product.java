@@ -5,10 +5,8 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
-import java.security.PrivateKey;
 import java.util.Date;
 
 @NoArgsConstructor
@@ -27,7 +25,6 @@ public class Product {
     private BigDecimal price;
     private boolean productAvailable;
     private int stockQuantity;
-    //    @JsonFormat(shape = JsonFormat.Shape.STRING,pattern = "dd-MM-yyyy")
     private Date releaseDate;
 
     private String imageName;

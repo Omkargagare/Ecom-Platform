@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.List;
 
 import com.omkar.ecom.model.Product;
+import com.omkar.ecom.response.ApiResponse;
 import com.omkar.ecom.service.ProductService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -12,7 +13,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@CrossOrigin
 @RequestMapping("/api")
 public class ProductController {
 
@@ -23,17 +23,15 @@ public class ProductController {
     }
 
     @GetMapping("/products")
-    public List<Product> findAllProducts() {
-        return service.findAllProducts();
+    public ResponseEntity<ApiResponse<List<Product>>> findAllProducts() {
+        List<Product> products = service.findAllProducts();
+        return ResponseEntity.ok(new ApiResponse<>("Products retrieved successfully", products, true));
     }
 
     @GetMapping("/product/{prodId}")
-    public ResponseEntity<Product> findProductById(@PathVariable Integer prodId) {
+    public ResponseEntity<ApiResponse<Product>> findProductById(@PathVariable Integer prodId) {
         Product product = service.findProductById(prodId);
-        if (product != null)
-            return new ResponseEntity<>(product, HttpStatus.OK);
-        else
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        return ResponseEntity.ok(new ApiResponse<>("Product retrieved successfully", product, true));
     }
 
     @GetMapping("/product/{prodId}/image")
@@ -46,55 +44,27 @@ public class ProductController {
     }
 
     @GetMapping("/products/search")
-    public ResponseEntity<List<Product>> searchProducts(@RequestParam String keyword){
-        System.out.println("search "+keyword);
+    public ResponseEntity<ApiResponse<List<Product>>> searchProducts(@RequestParam String keyword) {
         List<Product> products = service.searchProducts(keyword);
-        if(products != null){
-            return new ResponseEntity<>(products,HttpStatus.OK);
-        }else{
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
+        return ResponseEntity.ok(new ApiResponse<>("Search results retrieved", products, true));
     }
 
     @PostMapping(value = "/product", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> addProduct(@RequestPart("product") Product product, @RequestPart("imageFile") MultipartFile imageFile) {
-        try {
-            Product product1 = service.addProduct(product, imageFile);
-            return new ResponseEntity<>(product1, HttpStatus.CREATED);
-        } catch (Exception e) {
-            System.out.println("error");
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    @PostMapping("/products")
-    public void saveProduct(@RequestBody Product prod) {
-        service.saveProduct(prod);
+    public ResponseEntity<ApiResponse<Product>> addProduct(@RequestPart("product") Product product, @RequestPart("imageFile") MultipartFile imageFile) throws IOException {
+        Product savedProduct = service.addProduct(product, imageFile);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new ApiResponse<>("Product created successfully", savedProduct, true));
     }
 
     @PutMapping(value = "/product/{prodId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<String> updateProduct(@PathVariable Integer prodId, @RequestPart("product") Product product, @RequestPart(value = "imageFile",required = false) MultipartFile imageFile) {
-        Product product1;
-        try {
-            product1 = service.updateProduct(prodId, product, imageFile);
-        } catch (IOException e) {
-            return new ResponseEntity<>("Failed to update", HttpStatus.BAD_REQUEST);
-        }
-        if (product1 != null) {
-            return new ResponseEntity<>("Updated", HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>("Failed to update", HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+    public ResponseEntity<ApiResponse<Product>> updateProduct(@PathVariable Integer prodId, @RequestPart("product") Product product, @RequestPart(value = "imageFile", required = false) MultipartFile imageFile) throws IOException {
+        Product updatedProduct = service.updateProduct(prodId, product, imageFile);
+        return ResponseEntity.ok(new ApiResponse<>("Product updated successfully", updatedProduct, true));
     }
 
     @DeleteMapping("/product/{prodId}")
-    public ResponseEntity<String> deleteProduct(@PathVariable Integer prodId) {
-        Product product = service.findProductById(prodId);
-        if (product != null) {
-            service.deleteProduct(prodId);
-            return new ResponseEntity<>("Deleted", HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>("Product not found", HttpStatus.NOT_FOUND);
-        }
+    public ResponseEntity<ApiResponse<Void>> deleteProduct(@PathVariable Integer prodId) {
+        service.deleteProduct(prodId);
+        return ResponseEntity.ok(new ApiResponse<>("Product deleted successfully", null, true));
     }
 }

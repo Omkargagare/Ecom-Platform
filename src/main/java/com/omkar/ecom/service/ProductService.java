@@ -2,8 +2,8 @@ package com.omkar.ecom.service;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
 
+import com.omkar.ecom.exception.ResourceNotFoundException;
 import com.omkar.ecom.model.Product;
 import com.omkar.ecom.repository.ProductRepo;
 import org.springframework.stereotype.Service;
@@ -27,11 +27,15 @@ public class ProductService {
     }
 
     public void deleteProduct(Integer prodId) {
+        if (!repo.existsById(prodId)) {
+            throw new ResourceNotFoundException("Product not found with id: " + prodId);
+        }
         repo.deleteById(prodId);
     }
 
     public Product findProductById(Integer prodId) {
-        return repo.findById(prodId).orElse(null);
+        return repo.findById(prodId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + prodId));
     }
 
     public Product addProduct(Product product, MultipartFile imageFile) throws IOException {
@@ -42,15 +46,16 @@ public class ProductService {
     }
 
     public Product updateProduct(Integer prodId, Product prod, MultipartFile imageFile) throws IOException {
-        Optional<Product> product = repo.findById(prodId);
-        if (product.isPresent()) {
+        if (!repo.existsById(prodId)) {
+            throw new ResourceNotFoundException("Product not found with id: " + prodId);
+        }
+        prod.setId(prodId);
+        if (imageFile != null && !imageFile.isEmpty()) {
             prod.setImageData(imageFile.getBytes());
             prod.setImageName(imageFile.getOriginalFilename());
             prod.setImageType(imageFile.getContentType());
-            return repo.save(prod);
-        } else {
-            return null;
         }
+        return repo.save(prod);
     }
 
     public List<Product> searchProducts(String keyword) {
