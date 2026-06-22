@@ -3,7 +3,7 @@ package com.omkar.ecom.model;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Setter
@@ -22,5 +22,5 @@ public class BlacklistToken {
     private String jti;
 
     @Column(nullable = false)
-    private LocalDateTime expiryTime;
+    private Instant expiryTime;
 }

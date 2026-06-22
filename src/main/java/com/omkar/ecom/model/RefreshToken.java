@@ -3,7 +3,8 @@ package com.omkar.ecom.model;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Duration;
+import java.time.Instant;
 
 @Entity
 @Setter
@@ -22,14 +23,16 @@ public class RefreshToken {
 
     private boolean revoked;
 
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
-    private LocalDateTime expiryDate;
+    private Instant expiryDate;
+
+    private String csrfToken;
 
     @PrePersist
     public void prePersist() {
-        this.createdAt = LocalDateTime.now();
-        this.expiryDate = this.createdAt.plusDays(7);
+        this.createdAt = Instant.now();
+        this.expiryDate = this.createdAt.plus(Duration.ofDays(7));
         this.revoked = false;
     }
 
@@ -37,4 +40,7 @@ public class RefreshToken {
     @JoinColumn(name = "user_id", nullable = false)
     private Users user;
 
+    public boolean isExpired() {
+        return !expiryDate.isAfter(Instant.now());
+    }
 }

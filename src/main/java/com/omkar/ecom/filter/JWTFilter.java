@@ -5,6 +5,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import com.omkar.ecom.repository.BlacklistTokenRepo;
 import com.omkar.ecom.service.JWTService;
 import com.omkar.ecom.service.MyUserDetailsService;
 import org.slf4j.Logger;
@@ -21,15 +22,31 @@ import java.io.IOException;
 @Component
 public class JWTFilter extends OncePerRequestFilter {
 
-    private final JWTService service;
+    private final JWTService jwtService;
 
     private final MyUserDetailsService userDetailsService;
 
+    private final BlacklistTokenRepo blacklistTokenRepo;
+
     private static final Logger logger = LoggerFactory.getLogger(JWTFilter.class);
 
-    public JWTFilter(JWTService service, MyUserDetailsService userDetailsService) {
-        this.service = service;
+    public JWTFilter(JWTService service, MyUserDetailsService userDetailsService, BlacklistTokenRepo blacklistTokenRepo) {
+        this.jwtService = service;
         this.userDetailsService = userDetailsService;
+        this.blacklistTokenRepo = blacklistTokenRepo;
+    }
+
+    public void sendError(HttpServletResponse response, String message) {
+        try {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+            response.getWriter().write(
+                    "{\"message\": \"" + message + "\", \"data\": null, \"success\": false}"
+            );
+        } catch (IOException e) {
+            logger.error("Failed to write error response", e);
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        }
     }
 
     @Override
@@ -41,31 +58,35 @@ public class JWTFilter extends OncePerRequestFilter {
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             token = authHeader.substring(7);
             try {
-                username = service.extractUsername(token);
+                if (jwtService.validateTokenSignature(token)) {
+                    sendError(response, "Invalid token");
+                    return;
+                }
+
+                username = jwtService.extractUsername(token);
+                String jti = jwtService.extractJtiFromToken(token);
+
+                if (blacklistTokenRepo.existsById(jti)) {
+                    sendError(response, "Token revoked");
+                    return;
+                }
             } catch (ExpiredJwtException e) {
                 logger.warn("JWT expired: {}", e.getMessage());
 
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.setContentType("application/json");
-                response.getWriter().write(
-                        "{\"message\": \"Token expired\", \"data\": null, \"success\": false}"
-                );
+                sendError(response, "Token expired");
                 return;
             } catch (Exception e) {
                 logger.warn("JWT invalid: {}", e.getMessage());
 
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.setContentType("application/json");
-                response.getWriter().write(
-                        "{\"message\": \"Invalid token\", \"data\": null, \"success\": false}"
-                );
+                sendError(response, "Invalid token");
                 return;
             }
         }
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-            if (service.validateToken(token, userDetails)) {
+
+            if (jwtService.validateTokenWithUser(token, userDetails)) {
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails,
                         null, userDetails.getAuthorities());
                 authToken.setDetails(new WebAuthenticationDetailsSource()
