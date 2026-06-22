@@ -6,5 +6,5 @@ import lombok.Data;
 @Data
 @AllArgsConstructor
 public class RefreshResponse {
-    String accessToken;
+    private String accessToken;
 }

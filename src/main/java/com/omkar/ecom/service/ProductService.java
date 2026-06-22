@@ -46,14 +46,18 @@ public class ProductService {
     }
 
     public Product updateProduct(Integer prodId, Product prod, MultipartFile imageFile) throws IOException {
-        if (!repo.existsById(prodId)) {
-            throw new ResourceNotFoundException("Product not found with id: " + prodId);
-        }
+        Product existingProduct = repo.findById(prodId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + prodId));
+
         prod.setId(prodId);
         if (imageFile != null && !imageFile.isEmpty()) {
             prod.setImageData(imageFile.getBytes());
             prod.setImageName(imageFile.getOriginalFilename());
             prod.setImageType(imageFile.getContentType());
+        } else {
+            prod.setImageData(existingProduct.getImageData());
+            prod.setImageName(existingProduct.getImageName());
+            prod.setImageType(existingProduct.getImageType());
         }
         return repo.save(prod);
     }

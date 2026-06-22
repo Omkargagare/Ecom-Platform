@@ -1,11 +1,13 @@
 package com.omkar.ecom.filter;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import com.omkar.ecom.repository.BlacklistTokenRepo;
+import com.omkar.ecom.response.ApiResponse;
 import com.omkar.ecom.service.JWTService;
 import com.omkar.ecom.service.MyUserDetailsService;
 import org.slf4j.Logger;
@@ -30,6 +32,8 @@ public class JWTFilter extends OncePerRequestFilter {
 
     private static final Logger logger = LoggerFactory.getLogger(JWTFilter.class);
 
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+
     public JWTFilter(JWTService service, MyUserDetailsService userDetailsService, BlacklistTokenRepo blacklistTokenRepo) {
         this.jwtService = service;
         this.userDetailsService = userDetailsService;
@@ -41,7 +45,7 @@ public class JWTFilter extends OncePerRequestFilter {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json");
             response.getWriter().write(
-                    "{\"message\": \"" + message + "\", \"data\": null, \"success\": false}"
+                    objectMapper.writeValueAsString(new ApiResponse<>(message, null, false))
             );
         } catch (IOException e) {
             logger.error("Failed to write error response", e);
@@ -58,7 +62,7 @@ public class JWTFilter extends OncePerRequestFilter {
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             token = authHeader.substring(7);
             try {
-                if (jwtService.validateTokenSignature(token)) {
+                if (!jwtService.validateTokenSignature(token)) {
                     sendError(response, "Invalid token");
                     return;
                 }

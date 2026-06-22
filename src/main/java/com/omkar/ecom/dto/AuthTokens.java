@@ -6,7 +6,7 @@ import lombok.Data;
 @Data
 @AllArgsConstructor
 public class AuthTokens {
-    String accessToken;
-    String refreshToken;
-    String csrfToken;
+    private String accessToken;
+    private String refreshToken;
+    private String csrfToken;
 }
